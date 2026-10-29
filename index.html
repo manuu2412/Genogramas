@@ -69,6 +69,42 @@ function fig(f){const p=f.p,x=f.x,y=f.y,pi=p.id===st.pi.id;if(isL(p))return lfig
  s+=`<text x="${x}" y="${y+R+26}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--tx)">${esc(p.name)}</text>`;
  (p.notes||'').split(/[,;\n]/).map(t=>t.trim()).filter(Boolean).forEach((t,i)=>s+=`<text x="${x}" y="${y+R+39+i*12}" text-anchor="middle" font-size="10.5" fill="var(--mu)">${esc(t)}</text>`);
  return s}
+/* Contorno punteado del hogar: solo encierra a quienes viven en casa.
+   Une las cajas de cada miembro (y los une con pasillos si quedan separados)
+   y recorta a quienes NO viven en el hogar, para que queden fuera. */
+function hogar(F,hg){
+ const mem=new Set(hg),RC=(x0,y0,x1,y1)=>({x0,y0,x1,y1}),
+ box=f=>RC(f.x-W*.55,f.y-R-18,f.x+W*.55,f.y+R+75),
+ obs=F.filter(f=>!mem.has(f)&&!isL(f.p)).map(f=>RC(f.x-R-14,f.y-R-14,f.x+R+14,f.y+R+75)),
+ hit=(a,b)=>a.x0<b.x1&&b.x0<a.x1&&a.y0<b.y1&&b.y0<a.y1,
+ seg=(a,b)=>a[1]===b[1]?RC(Math.min(a[0],b[0])-W*.55,a[1]-R-18,Math.max(a[0],b[0])+W*.55,a[1]+R+75):RC(a[0]-W*.55,Math.min(a[1],b[1]),a[0]+W*.55,Math.max(a[1],b[1])),
+ bs=hg.map(box),par=hg.map((_,i)=>i),find=i=>par[i]===i?i:(par[i]=find(par[i]));
+ for(let i=0;i<bs.length;i++)for(let j=i+1;j<bs.length;j++)if(hit(bs[i],bs[j]))par[find(i)]=find(j);
+ const top=Math.min(...F.map(f=>f.y))-R-30,bot=Math.max(...F.map(f=>f.y))+R+85,left=Math.min(...F.map(f=>f.x))-75,right=Math.max(...F.map(f=>f.x))+75,
+ routes=(a,b)=>{const A=[a.x,a.y],B=[b.x,b.y];return[[A,[b.x,a.y],B],[A,[a.x,b.y],B],[A,[a.x,top],[b.x,top],B],[A,[a.x,bot],[b.x,bot],B],[A,[left,a.y],[left,b.y],B],[A,[right,a.y],[right,b.y],B]]},
+ rects=r=>r.slice(1).map((p,i)=>seg(r[i],p)),len=r=>r.slice(1).reduce((t,p,i)=>t+Math.abs(p[0]-r[i][0])+Math.abs(p[1]-r[i][1]),0),bridges=[];
+ for(;;){let best=null;
+  for(let i=0;i<hg.length;i++)for(let j=i+1;j<hg.length;j++){if(find(i)===find(j))continue;
+   for(const r of routes(hg[i],hg[j])){const rc=rects(r);if(rc.some(q=>obs.some(o=>hit(q,o))))continue;const l=len(r);if(!best||l<best.l)best={l,rc,i,j}}}
+  if(!best)break;bridges.push(...best.rc);par[find(best.i)]=find(best.j)}
+ const R0=[...bs,...bridges],all=[...R0,...obs],u=a=>[...new Set(a)].sort((p,q)=>p-q),
+ xs=u(all.flatMap(r=>[r.x0,r.x1])),ys=u(all.flatMap(r=>[r.y0,r.y1])),
+ ins=(r,x,y)=>x>r.x0&&x<r.x1&&y>r.y0&&y<r.y1,
+ G=xs.slice(0,-1).map((_,i)=>ys.slice(0,-1).map((_,j)=>{const x=(xs[i]+xs[i+1])/2,y=(ys[j]+ys[j+1])/2;return R0.some(r=>ins(r,x,y))&&!obs.some(r=>ins(r,x,y))})),
+ inc=(i,j)=>!!(G[i]&&G[i][j]),E=[];
+ for(let i=0;i<G.length;i++)for(let j=0;j<G[i].length;j++){if(!G[i][j])continue;
+  if(!inc(i,j-1))E.push([i,j,i+1,j]);if(!inc(i+1,j))E.push([i+1,j,i+1,j+1]);
+  if(!inc(i,j+1))E.push([i+1,j+1,i,j+1]);if(!inc(i-1,j))E.push([i,j+1,i,j])}
+ const out=new Map();E.forEach(e=>{const k=e[0]+','+e[1];if(!out.has(k))out.set(k,[]);out.get(k).push(e)});
+ let d='';
+ for(const e0 of E){if(e0.u)continue;let pts=[],e=e0;
+  while(e&&!e.u){e.u=1;pts.push([xs[e[0]],ys[e[1]]]);e=(out.get(e[2]+','+e[3])||[]).find(x=>!x.u)}
+  pts=pts.filter((c,i)=>{const a=pts[(i+pts.length-1)%pts.length],b=pts[(i+1)%pts.length];return!((a[0]===c[0]&&c[0]===b[0])||(a[1]===c[1]&&c[1]===b[1]))});
+  const n=pts.length;if(n<3)continue;
+  const cs=pts.map((c,i)=>{const a=pts[(i+n-1)%n],b=pts[(i+1)%n],l1=Math.hypot(a[0]-c[0],a[1]-c[1]),l2=Math.hypot(b[0]-c[0],b[1]-c[1]),r=Math.min(14,l1/2,l2/2);
+   return[[c[0]+(a[0]-c[0])/l1*r,c[1]+(a[1]-c[1])/l1*r],[c[0]+(b[0]-c[0])/l2*r,c[1]+(b[1]-c[1])/l2*r]]});
+  d+=`M${cs[0][1]}`+pts.map((c,i)=>i?`L${cs[i][0]}Q${c} ${cs[i][1]}`:'').join('')+`L${cs[0][0]}Q${pts[0]} ${cs[0][1]}Z`}
+ return d?`<path d="${d}" fill="none" stroke="var(--tx)" stroke-width="2" stroke-dasharray="9 6" stroke-linejoin="round"/>`:''}
 function rel(a,b,t){const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy);if(!L)return'';
  const ux=dx/L,uy=dy/L,nx=-uy,ny=ux,x1=a.x+ux*(R+3),y1=a.y+uy*(R+3),x2=b.x-ux*(R+3),y2=b.y-uy*(R+3);
  const ln=o=>`M${x1+nx*o} ${y1+ny*o}L${x2+nx*o} ${y2+ny*o}`;
@@ -120,8 +156,7 @@ function draw(){
   const xl=un2(hP.slice().reverse(),fa,-1),xr=un2(hM,mo,1);side(st.gpP,st.tp,fa,-1,xl);side(st.gpM,st.tm,mo,1,xr)}
  const minX=Math.min(...F.map(f=>f.x))-80,minY=Math.min(...F.map(f=>f.y))-R-50,maxX=Math.max(...F.map(f=>f.x))+80,maxY=Math.max(...F.map(f=>f.y))+R+105;
  const hg=F.filter(f=>f.p.hogar||f.p.id===st.pi.id);let hog='';
- if(hg.length>1){const x0=Math.min(...hg.map(f=>f.x))-W*.55,x1=Math.max(...hg.map(f=>f.x))+W*.55,y0=Math.min(...hg.map(f=>f.y))-R-18,y1=Math.max(...hg.map(f=>f.y))+R+75;
-  hog=`<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" rx="14" fill="none" stroke="var(--tx)" stroke-width="2" stroke-dasharray="9 6"/>`}
+ if(hg.length>1)hog=hogar(F,hg);
  const by=Object.fromEntries(F.map(f=>[f.p.id,f]));
  const rl=st.rels.map(r=>by[r.a]&&by[r.b]&&r.a!==r.b?rel(by[r.a],by[r.b],r.t):'').join('');
  const w0=maxX-minX,h0=maxY-minY,cr=st.cron.filter(e=>e.t||e.y).sort(cmp),w=cr.length?Math.max(w0,600):w0;let cs='',h=h0;
