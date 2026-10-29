@@ -2,6 +2,14 @@
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Generador de genogramas</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#17635e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Genogramas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <style>
 :root{--bg:#f4f3ee;--sf:#fff;--tx:#1d2126;--mu:#666b73;--bd:#d8d5ca;--ac:#17635e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#15171a;--sf:#212428;--tx:#e9e7e2;--mu:#a0a4ab;--bd:#3a3e44;--ac:#55b9b1}}
@@ -221,9 +229,12 @@ function ex(){reset();const T=(name,sex,age,notes,o)=>P({name,sex,age,notes,...o
 const expSvg=()=>lastSvg.replace(/var\(--tx\)/g,'#111').replace(/var\(--sf\)/g,'#fff').replace(/var\(--mu\)/g,'#555').replace(/(<svg[^>]*>)/,'$1<rect width="100%" height="100%" fill="#fff"/>');
 async function save(name,data){try{let d=null;try{d=window.claude&&await claude.use('downloads')}catch(_){}
  if(d){await d.save({filename:name,data});msg('');return}
- const b=data instanceof Blob?data:new Blob([data],{type:'image/svg+xml'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);msg('')}catch(e){msg(e&&e.code==='declined'?'':'No se pudo guardar')}}
+ const b=data instanceof Blob?data:new Blob([data],{type:'image/svg+xml'});
+ if(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)&&navigator.canShare){const f=new File([b],name,{type:b.type});if(navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});msg('');return}catch(e){if(e&&e.name==='AbortError'){msg('');return}}}}
+ const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);msg('')}catch(e){msg(e&&e.code==='declined'?'':'No se pudo guardar')}}
 const msg=t=>$('#msg').textContent=t;
 function saveSvg(){save('genograma.svg',expSvg())}
 function savePng(){const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=img.width*2;c.height=img.height*2;const x=c.getContext('2d');x.scale(2,2);x.drawImage(img,0,0);c.toBlob(b=>save('genograma.png',b),'image/png')};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(expSvg())}
 reset();rf();draw();
+if('serviceWorker' in navigator&&location.protocol!=='file:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
