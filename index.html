@@ -62,6 +62,7 @@ let uid=0,st,lastSvg='';
 const P=o=>({id:'p'+(++uid),name:'',sex:'M',age:'',dead:false,notes:'',hogar:false,kind:'p',adop:false,tw:'',...o});
 const PAR=()=>({on:false,p:P({sex:'F'}),status:'m',year:'',kids:[]}),S=o=>({...P(o),par:PAR()}),L=k=>P({kind:k,year:''}),isL=p=>p.kind&&p.kind!=='p';
 const DY=60,LR={preg:12,abS:5,abI:0,still:12},LT=[['preg','Embarazo'],['abS','Aborto espontáneo'],['abI','Aborto provocado'],['still','Parto de feto muerto']],TW=[['','No es gemelo/a'],['d','Mellizos (dicigóticos) con el siguiente'],['i','Gemelos idénticos con el siguiente']];
+const ad=p=>{const m=String(p.age??'').trim().match(/^(\d+)\s*([a-záéíóúñ]*)/i);return!!m&&+m[1]>=18&&!/^(m|mes|meses|d|dia|dias|día|días|s|sem|semana|semanas)$/i.test(m[2])};
 const getP=p=>p.split('.').reduce((o,k)=>o[k],st);
 const wrap=(s,n)=>{const o=[];let l='';String(s).split(/\s+/).forEach(t=>{if(l&&(l+' '+t).length>n){o.push(l);l=t}else l=(l+' '+t).trim()});if(l)o.push(l);return o.length?o:['']};
 function ck(s){const n=String(s||'').match(/\d+/g)||[],i=n.findIndex(x=>x.length===4);if(i<0){if(!n.length)return[1e9,0,0];const y=+n[0];return[y<100?1900+y:y,0,0]}const b=n.slice(0,i);return[+n[i],b.length>1?+b[1]:b.length?+b[0]:0,b.length>1?+b[0]:0]}
@@ -151,7 +152,7 @@ function draw(){
    if(g.some(f=>f.p.adop))dd+=t;else d+=t}
   L.push(`<path d="M${cx} ${ly}V${by}M${Math.min(...xs)} ${by}H${Math.max(...xs)}${d}"/>`);if(dd)L.push(`<path d="${dd}" stroke-dasharray="3 4"/>`)}
  const ks=a=>a.reduce((t,p)=>t+wd(p),0),wd=p=>isL(p)?.65*W:p.par&&p.par.on?Math.max(1.9*W,ks(p.par.kids||[])):W,kw=q=>ks(q.kids),gap=q=>q.kids.length?Math.max(kw(q),1.8*W):1.6*W;
- function spread(a,cx,y){let l=cx-ks(a)/2;return a.map(p=>{const w=wd(p),f=mk(p,l+w/2,y);l+=w;return f})}
+ function spread(a,cx,y,pp){let l=cx-ks(a)/2;return a.map(p=>{const w=wd(p),f=pp&&!isL(p)?put(p,l+W/2,y):mk(p,l+w/2,y);l+=w;return f})}
  const put=(p,x,y)=>{const on=p.par&&p.par.on,e=on?Math.max(0,(wd(p)-1.9*W)/2):0,f=mk(p,x+e,y);if(on){const b=mk(p.par.p,x+e+.9*W,y+DY),cx=couple(f,b,p.par.status,p.par.year);kids(cx,f.y+R+8,spread(p.par.kids||[],cx,y+DY+150))}return f};
  let c=0;const row=(it,y)=>it.map(p=>{const w=wd(p),f=put(p,c+(isL(p)?w/2:W/2),y);c+=w;return f});
  const ex=st.parejas.filter(q=>q.status==='s'||q.status==='d'),cu=st.parejas.filter(q=>!ex.includes(q));
@@ -162,7 +163,7 @@ function draw(){
  const bf=row(sib.slice(0,cut),Y[2]);
  const ch=cq.map((q,i)=>{if(i>0)c+=gap(i-1<pi?cq[i-1]:cq[i])-W;const f=mk(q?q.p:st.pi,c+W/2,Y[2]);c+=W;return f});
  const af=row(sib.slice(cut),Y[2]),hM=hrow(HM);
- for(let i=0;i<ch.length-1;i++){const q=i<pi?cq[i]:cq[i+1],cx=couple(ch[i],ch[i+1],q.status,q.year);kids(cx,ch[i].y+R+8,spread(q.kids,cx,Y[3]))}
+ for(let i=0;i<ch.length-1;i++){const q=i<pi?cq[i]:cq[i+1],cx=couple(ch[i],ch[i+1],q.status,q.year);kids(cx,ch[i].y+R+8,spread(q.kids,cx,Y[3],1))}
  if(st.fam.on){const f2=[...bf,ch[pi],...af],xs=f2.map(f=>f.x),Pc=(Math.min(...xs)+Math.max(...xs))/2,g=(st.gpP.on||st.gpM.on)?3.4*W:1.8*W;
   const fa=mk(st.fam.a,Pc-g/2,Y[1]),mo=mk(st.fam.b,Pc+g/2,Y[1]);
   kids(couple(fa,mo,st.fam.status,st.fam.year),fa.y+R+8,f2);
@@ -188,7 +189,7 @@ function pr(path,p,o={}){const sel=(v,t)=>`<option value="${v}"${p.sex===v?' sel
  return `<div class="pr"><input data-p="${path}.name" value="${esc(p.name)}" placeholder="Nombre"><select data-p="${path}.sex">${sel('M','♂ Hombre')}${sel('F','♀ Mujer')}</select><input data-p="${path}.age" value="${esc(p.age)}" placeholder="Edad"><input class="nt" data-p="${path}.notes" value="${esc(p.notes)}" placeholder="Ocupación, diagnósticos… (separa con comas)"><label><input type="checkbox" data-p="${path}.dead"${p.dead?' checked':''}> Fallecido</label>${o.nh?'<span></span>':`<label><input type="checkbox" data-p="${path}.hogar"${p.hogar?' checked':''}> Vive en el hogar</label>`}${o.del?`<button class="x" title="Quitar" aria-label="Quitar" onclick="${o.del}">✕</button>`:'<span></span>'}${o.sib?`<label><input type="checkbox" data-p="${path}.adop"${p.adop?' checked':''}> Adoptado/a</label><select data-p="${path}.tw" style="grid-column:2/-1">${opts(TW,p.tw)}</select>`:''}</div>`}
 const lrow=(path,p,del)=>`<div class="pr"><select data-p="${path}.kind">${opts(LT,p.kind)}</select>${p.kind==='still'?`<select data-p="${path}.sex">${opts([['M','♂'],['F','♀']],p.sex)}</select>`:'<span></span>'}<input data-p="${path}.year" value="${esc(p.year)}" placeholder="Año"><input class="nt" data-p="${path}.notes" value="${esc(p.notes)}" placeholder="Texto bajo el símbolo, ej.: 3 meses"><span></span><span></span><button class="x" title="Quitar" aria-label="Quitar" onclick="${del}">✕</button></div>`;
 const parb=(pa,p)=>`<label class="row2"><input type="checkbox" data-p="${pa}.par.on"${p.par.on?' checked':''}> Tiene pareja</label>`+(p.par.on?`<div class="sub">${pr(pa+'.par.p',p.par.p,{nh:1})}${stSel(pa+'.par',p.par)}<b>Hijos de esta pareja</b>${rows(pa+'.par.kids')}${adds(pa+'.par.kids','Hijo/a',1)}</div>`:'');
-const rows=(path,pt)=>getP(path).map((p,i)=>{const pa=`${path}.${i}`,d=`act('del','${path}',${i})`;return isL(p)?lrow(pa,p,d):pr(pa,p,{del:d,sib:1})+(pt&&p.par?parb(pa,p):'')}).join('');
+const rows=(path,pt)=>getP(path).map((p,i)=>{const pa=`${path}.${i}`,d=`act('del','${path}',${i})`;if(isL(p))return lrow(pa,p,d);if(pt==='a'&&!p.par)p.par=PAR();return pr(pa,p,{del:d,sib:1})+(pt&&p.par&&(pt!=='a'||ad(p))?parb(pa,p):'')}).join('');
 const adds=(path,lbl,ls)=>`<div class="row2"><button onclick="act('add','${path}')">+ ${lbl}</button>${ls?`<button onclick="act('add','${path}','A')">+ ${lbl} adoptado/a</button><button onclick="act('add','${path}','L')">+ Embarazo / aborto</button>`:''}</div>`;
 const stSel=(path,q)=>`<div class="row2"><select data-p="${path}.status" style="width:auto">${opts(ST,q.status)}</select><input data-p="${path}.year" value="${esc(q.year)}" placeholder="Año" style="width:80px"></div>`;
 const card=(t,b)=>`<div class="card"><h2>${t}</h2>${b}</div>`;
@@ -197,7 +198,7 @@ function unitCard(t,key,tiosKey,tdel,tadd){const g=st[key];
 const unions=(key,lbl)=>st[key].map((q,i)=>`<div class="sub">${pr(`${key}.${i}.p`,q.p,{nh:1,del:`act('delU','${key}',${i})`})}${stSel(`${key}.${i}`,q)}<b>Hijos con esta pareja (medios hermanos del PI)</b>${rows(`${key}.${i}.kids`)}${adds(`${key}.${i}.kids`,'Medio hermano/a',1)}</div>`).join('')+`<button onclick="act('addU','${key}')">+ ${lbl}</button>`;
 function rf(){let h=`<h1>Generador de genogramas</h1><p class="hint">Captura los datos y el genograma se dibuja solo (símbolos de McGoldrick y Gerson). El hogar se encierra en línea punteada. Gemelos: marca «con el siguiente» y deja a ambos seguidos. Embarazos y abortos se ubican según el orden de la lista.</p>`;
  h+=card('Paciente índice (PI)',pr('pi',st.pi,{nh:1,sib:st.fam.on}));
- h+=card('Parejas e hijos del PI',st.parejas.map((q,i)=>`<div class="sub">${pr(`parejas.${i}.p`,q.p,{del:`act('delQ',${i})`})}${stSel(`parejas.${i}`,q)}<b>Hijos con esta pareja</b>${rows(`parejas.${i}.kids`)}${adds(`parejas.${i}.kids`,'Hijo/a',1)}</div>`).join('')+`<button onclick="act('addQ')">+ Pareja</button>`);
+ h+=card('Parejas e hijos del PI',st.parejas.map((q,i)=>`<div class="sub">${pr(`parejas.${i}.p`,q.p,{del:`act('delQ',${i})`})}${stSel(`parejas.${i}`,q)}<b>Hijos con esta pareja</b>${rows(`parejas.${i}.kids`,'a')}${adds(`parejas.${i}.kids`,'Hijo/a',1)}</div>`).join('')+`<button onclick="act('addQ')">+ Pareja</button>`);
  h+=card('Padres y hermanos del PI',`<label><input type="checkbox" data-p="fam.on"${st.fam.on?' checked':''}> Incluir padres</label>`+(st.fam.on?pr('fam.a',st.fam.a)+pr('fam.b',st.fam.b)+stSel('fam',st.fam)+`<b>Nuevas parejas del padre</b><p class="hint">Si los padres se separaron: agrega a su nueva pareja y a los hijos de ambos (medios hermanos del PI).</p>`+unions('pa','Pareja del padre')+`<b>Nuevas parejas de la madre</b>`+unions('ma','Pareja de la madre')+`<b>Hermanos del PI (sin contar al PI, de mayor a menor)</b>${rows('hermanos',1)}${adds('hermanos','Hermano/a',1)}<div class="row2">El PI es el hermano nº <input data-p="pos" value="${esc(st.pos)}" placeholder="último" style="width:80px"></div>`:''));
  if(st.fam.on){h+=unitCard('Abuelos paternos','gpP','tp','delTp','addTp');h+=unitCard('Abuelos maternos','gpM','tm','delTm','addTm')}
  h+=card('Líneas de interacción',`<div id="rels"></div><button onclick="act('addR')">+ Relación</button>`);
@@ -208,7 +209,9 @@ function rr(){const ps=allP(),po=v=>ps.map(p=>`<option value="${p.id}"${p.id===v
  $('#rels').innerHTML=st.rels.map((r,i)=>`<div class="rl"><select data-p="rels.${i}.a">${po(r.a)}</select><select data-p="rels.${i}.b">${po(r.b)}</select><select data-p="rels.${i}.t">${opts(RT,r.t)}</select><button class="x" title="Quitar" aria-label="Quitar" onclick="act('delR',${i})">✕</button></div>`).join('')}
 function setP(path,v){const k=path.split('.');let o=st;for(let i=0;i<k.length-1;i++)o=o[k[i]];o[k[k.length-1]]=v}
 document.addEventListener('input',e=>{const el=e.target,p=el.dataset.p;if(!p)return;setP(p,el.type==='checkbox'?el.checked:el.value);if(p.endsWith('.par.on')&&el.checked){const pa=getP(p.slice(0,-3)),ow=getP(p.slice(0,-7));if(!pa.p.name)pa.p.sex=ow.sex==='F'?'M':'F'}if(p.endsWith('.on')||p.endsWith('.kind')){rf()}draw()});
-document.addEventListener('change',e=>{if(e.target.dataset.p&&/\.(name|age)$/.test(e.target.dataset.p))rr()});
+document.addEventListener('change',e=>{const d=e.target.dataset.p;if(d&&/\.(name|age)$/.test(d)){
+ if(/^parejas\.\d+\.kids\.\d+\.age$/.test(d)){const b=d.slice(0,-4),k=getP(b);if(!isL(k)){const ok=ad(k),has=!!document.querySelector(`[data-p="${b}.par.on"]`);if(!ok&&k.par)k.par.on=false;if(ok!==has){rf();draw();return}}}
+ rr()}});
 function act(n,i,j){const s=st;
  if(n==='addQ')s.parejas.push({p:P({sex:s.pi.sex==='F'?'M':'F',hogar:true}),status:'m',year:'',kids:[]});
  if(n==='delQ')s.parejas.splice(i,1);
@@ -223,7 +226,7 @@ function impC(){const have=new Set(st.cron.map(e=>e.src)),nm=p=>p.name||'?',ET={
  const add=(src,y,t)=>{if(y&&!have.has(src)){have.add(src);st.cron.push({y:String(y),t,src})}},
  un=(a,b,u,k)=>add('u'+(k||b.id),u.year,`${ET[u.status]} de ${nm(a)} y ${nm(b)}`),
  lo=(arr,ctx)=>arr.filter(isL).forEach(p=>add('l'+p.id,p.year,LN[p.kind]+(p.notes?` (${p.notes})`:'')+ctx)),pe=p=>{if(p.par&&p.par.on){un(p,p.par.p,p.par);lo(p.par.kids||[],' (hijos de '+nm(p)+')')}};
- st.parejas.forEach(q=>{un(st.pi,q.p,q);lo(q.kids,' con '+nm(q.p))});
+ st.parejas.forEach(q=>{un(st.pi,q.p,q);lo(q.kids,' con '+nm(q.p));q.kids.forEach(pe)});
  if(st.fam.on){un(st.fam.a,st.fam.b,st.fam,'fam');[['pa',st.fam.a],['ma',st.fam.b]].forEach(([k,o])=>st[k].forEach(r=>{un(o,r.p,r);lo(r.kids,' (hijos de '+nm(r.p)+')')}));st.hermanos.forEach(pe);lo(st.hermanos,' (familia de origen)');[[st.gpP,st.tp],[st.gpM,st.tm]].forEach(([g,t])=>{if(g.on){un(g.a,g.b,g);t.forEach(pe)}})}
  st.cron.sort(cmp)}
 function ex(){reset();const T=(name,sex,age,notes,o)=>P({name,sex,age,notes,...o});
