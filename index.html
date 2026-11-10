@@ -96,15 +96,17 @@ function hogar(F,hg){
  box=f=>RC(f.x-W*.55,f.y-R-18,f.x+W*.55,f.y+R+75),
  obs=F.filter(f=>!mem.has(f)&&!isL(f.p)).map(f=>RC(f.x-R-14,f.y-R-14,f.x+R+14,f.y+R+75)),
  hit=(a,b)=>a.x0<b.x1&&b.x0<a.x1&&a.y0<b.y1&&b.y0<a.y1,
- seg=(a,b)=>a[1]===b[1]?RC(Math.min(a[0],b[0])-W*.55,a[1]-R-18,Math.max(a[0],b[0])+W*.55,a[1]+R+75):RC(a[0]-W*.55,Math.min(a[1],b[1]),a[0]+W*.55,Math.max(a[1],b[1])),
+ HW=[W*.55,32,14],
+ seg=(a,b,h)=>a[1]===b[1]?(h===HW[0]?RC(Math.min(a[0],b[0])-h,a[1]-R-18,Math.max(a[0],b[0])+h,a[1]+R+75):RC(Math.min(a[0],b[0])-h,a[1]-h,Math.max(a[0],b[0])+h,a[1]+h)):RC(a[0]-h,Math.min(a[1],b[1]),a[0]+h,Math.max(a[1],b[1])),
  bs=hg.map(box),par=hg.map((_,i)=>i),find=i=>par[i]===i?i:(par[i]=find(par[i]));
  for(let i=0;i<bs.length;i++)for(let j=i+1;j<bs.length;j++)if(hit(bs[i],bs[j]))par[find(i)]=find(j);
- const top=Math.min(...F.map(f=>f.y))-R-30,bot=Math.max(...F.map(f=>f.y))+R+85,left=Math.min(...F.map(f=>f.x))-75,right=Math.max(...F.map(f=>f.x))+75,
- routes=(a,b)=>{const A=[a.x,a.y],B=[b.x,b.y];return[[A,[b.x,a.y],B],[A,[a.x,b.y],B],[A,[a.x,top],[b.x,top],B],[A,[a.x,bot],[b.x,bot],B],[A,[left,a.y],[left,b.y],B],[A,[right,a.y],[right,b.y],B]]},
- rects=r=>r.slice(1).map((p,i)=>seg(r[i],p)),len=r=>r.slice(1).reduce((t,p,i)=>t+Math.abs(p[0]-r[i][0])+Math.abs(p[1]-r[i][1]),0),bridges=[];
+ const mnY=Math.min(...F.map(f=>f.y)),mxY=Math.max(...F.map(f=>f.y)),mnX=Math.min(...F.map(f=>f.x)),mxX=Math.max(...F.map(f=>f.x)),
+ routes=(a,b,h)=>{const top=mnY-R-16-h,bot=mxY+R+77+h,left=mnX-R-16-h,right=mxX+R+16+h,A=[a.x,a.y],B=[b.x,b.y];return[[A,[b.x,a.y],B],[A,[a.x,b.y],B],[A,[a.x,top],[b.x,top],B],[A,[a.x,bot],[b.x,bot],B],[A,[left,a.y],[left,b.y],B],[A,[right,a.y],[right,b.y],B]]},
+ rects=(r,h)=>r.slice(1).map((p,i)=>seg(r[i],p,h)),len=r=>r.slice(1).reduce((t,p,i)=>t+Math.abs(p[0]-r[i][0])+Math.abs(p[1]-r[i][1]),0),bridges=[];
  for(;;){let best=null;
   for(let i=0;i<hg.length;i++)for(let j=i+1;j<hg.length;j++){if(find(i)===find(j))continue;
-   for(const r of routes(hg[i],hg[j])){const rc=rects(r);if(rc.some(q=>obs.some(o=>hit(q,o))))continue;const l=len(r);if(!best||l<best.l)best={l,rc,i,j}}}
+   for(let lv=0;lv<HW.length;lv++){if(best&&best.lv<lv)break;
+    for(const r of routes(hg[i],hg[j],HW[lv])){const rc=rects(r,HW[lv]);if(rc.some(q=>obs.some(o=>hit(q,o))))continue;const l=len(r);if(!best||lv<best.lv||(lv===best.lv&&l<best.l))best={l,lv,rc,i,j}}}}
   if(!best)break;bridges.push(...best.rc);par[find(best.i)]=find(best.j)}
  const R0=[...bs,...bridges],all=[...R0,...obs],u=a=>[...new Set(a)].sort((p,q)=>p-q),
  xs=u(all.flatMap(r=>[r.x0,r.x1])),ys=u(all.flatMap(r=>[r.y0,r.y1])),
@@ -115,6 +117,7 @@ function hogar(F,hg){
   if(!inc(i,j-1))E.push([i,j,i+1,j]);if(!inc(i+1,j))E.push([i+1,j,i+1,j+1]);
   if(!inc(i,j+1))E.push([i+1,j+1,i,j+1]);if(!inc(i-1,j))E.push([i,j+1,i,j])}
  const out=new Map();E.forEach(e=>{const k=e[0]+','+e[1];if(!out.has(k))out.set(k,[]);out.get(k).push(e)});
+ hogar.ext={x0:Math.min(...R0.map(r=>r.x0)),y0:Math.min(...R0.map(r=>r.y0)),x1:Math.max(...R0.map(r=>r.x1)),y1:Math.max(...R0.map(r=>r.y1))};
  let d='';
  for(const e0 of E){if(e0.u)continue;let pts=[],e=e0;
   while(e&&!e.u){e.u=1;pts.push([xs[e[0]],ys[e[1]]]);e=(out.get(e[2]+','+e[3])||[]).find(x=>!x.u)}
@@ -123,7 +126,7 @@ function hogar(F,hg){
   const cs=pts.map((c,i)=>{const a=pts[(i+n-1)%n],b=pts[(i+1)%n],l1=Math.hypot(a[0]-c[0],a[1]-c[1]),l2=Math.hypot(b[0]-c[0],b[1]-c[1]),r=Math.min(14,l1/2,l2/2);
    return[[c[0]+(a[0]-c[0])/l1*r,c[1]+(a[1]-c[1])/l1*r],[c[0]+(b[0]-c[0])/l2*r,c[1]+(b[1]-c[1])/l2*r]]});
   d+=`M${cs[0][1]}`+pts.map((c,i)=>i?`L${cs[i][0]}Q${c} ${cs[i][1]}`:'').join('')+`L${cs[0][0]}Q${pts[0]} ${cs[0][1]}Z`}
- return d?`<path d="${d}" fill="none" stroke="var(--tx)" stroke-width="2" stroke-dasharray="9 6" stroke-linejoin="round"/>`:''}
+ return d?`<path d="${d}" fill="var(--tx)" fill-opacity=".06" fill-rule="evenodd" stroke="var(--tx)" stroke-width="2" stroke-dasharray="9 6" stroke-linejoin="round"/>`:''}
 function rel(a,b,t){const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy);if(!L)return'';
  const ux=dx/L,uy=dy/L,nx=-uy,ny=ux,x1=a.x+ux*(R+3),y1=a.y+uy*(R+3),x2=b.x-ux*(R+3),y2=b.y-uy*(R+3);
  const ln=o=>`M${x1+nx*o} ${y1+ny*o}L${x2+nx*o} ${y2+ny*o}`;
@@ -179,9 +182,9 @@ function draw(){
    const a=mk(gp.a,m-.9*W,Y[0]),b=mk(gp.b,m+.9*W,Y[0]);kids(couple(a,b,gp.status,gp.year),a.y+R+8,grp)};
   const un2=(h,par,dir)=>{let px=par.x;h.forEach(o=>{let x=o.ox!=null?o.ox:o.cx==null?px+dir*1.1*W:2*o.cx-par.x;x=dir<0?Math.min(x,px-1.1*W):Math.max(x,px+1.1*W);px=x;const n=mk(o.q.p,x,Y[1]),c2=dir<0?couple(n,par,o.q.status,o.q.year):couple(par,n,o.q.status,o.q.year);if(o.k.length)kids(c2,n.y+R+8,o.k);if(o.o.length)kids(n.x-dir*.4*W,n.y+R+8,o.o)});return px};
   const xl=un2(hP.slice().reverse(),fa,-1),xr=un2(hM,mo,1);side(st.gpP,pO,pY,fa,xl,fa.x);side(st.gpM,mO,mY,mo,mo.x,xr)}
- const minX=Math.min(...F.map(f=>f.x))-80,minY=Math.min(...F.map(f=>f.y))-R-50-(tb?40:0),maxX=Math.max(...F.map(f=>f.x))+80,maxY=Math.max(...F.map(f=>f.y))+R+105;
+ let minX=Math.min(...F.map(f=>f.x))-80,minY=Math.min(...F.map(f=>f.y))-R-50-(tb?40:0),maxX=Math.max(...F.map(f=>f.x))+80,maxY=Math.max(...F.map(f=>f.y))+R+105;
  const hg=F.filter(f=>f.p.hogar||f.p.id===st.pi.id);let hog='';
- if(hg.length>1)hog=hogar(F,hg);
+ if(hg.length>1){hogar.ext=null;hog=hogar(F,hg);const e=hogar.ext;if(e){minX=Math.min(minX,e.x0-10);maxX=Math.max(maxX,e.x1+10);minY=Math.min(minY,e.y0-36);maxY=Math.max(maxY,e.y1+10)}}
  const by=Object.fromEntries(F.map(f=>[f.p.id,f]));
  const rl=st.rels.map(r=>by[r.a]&&by[r.b]&&r.a!==r.b?rel(by[r.a],by[r.b],r.t):'').join('');
  const w0=maxX-minX,h0=maxY-minY,cr=st.cron.filter(e=>e.t||e.y).sort(cmp),w=cr.length?Math.max(w0,600):w0;let cs='',h=h0;
