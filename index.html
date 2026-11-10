@@ -164,16 +164,20 @@ function draw(){
  const ch=cq.map((q,i)=>{if(i>0)c+=gap(i-1<pi?cq[i-1]:cq[i])-W;const f=mk(q?q.p:st.pi,c+W/2,Y[2]);c+=W;return f});
  const af=row(sib.slice(cut),Y[2]),hM=hrow(HM);
  for(let i=0;i<ch.length-1;i++){const q=i<pi?cq[i]:cq[i+1],cx=couple(ch[i],ch[i+1],q.status,q.year);kids(cx,ch[i].y+R+8,spread(q.kids,cx,Y[3],1))}
- if(st.fam.on){const f2=[...bf,ch[pi],...af],xs=f2.map(f=>f.x),Pc=(Math.min(...xs)+Math.max(...xs))/2,g=(st.gpP.on||st.gpM.on)?3.4*W:1.8*W;
+ if(st.fam.on){const f2=[...bf,ch[pi],...af],xs=f2.map(f=>f.x),Pc=(Math.min(...xs)+Math.max(...xs))/2,g0=(st.gpP.on||st.gpM.on)?3.4*W:1.8*W,
+  av=p=>{const m=String(p.age??'').trim().match(/^(\d+(?:[.,]\d+)?)\s*([a-záéíóúñ]*)/i);if(!m)return null;let v=+m[1].replace(',','.');const u=m[2].toLowerCase();if(/^(m|mes|meses)$/.test(u))v/=12;else if(/^(d|dia|dias|día|días)$/.test(u))v/=365;else if(/^(s|sem|semana|semanas)$/.test(u))v/=52;return v},
+  spl=(ti,an,dir)=>{const A=av(an);if(A!=null&&ti.every(p=>av(p)!=null)){const t=ti.slice().sort((p,q)=>av(q)-av(p));return[t.filter(p=>av(p)>=A),t.filter(p=>av(p)<A)]}return dir<0?[ti,[]]:[[],ti]},
+  [pO,pY]=spl(st.tp,st.fam.a,-1),[mO,mY]=spl(st.tm,st.fam.b,1),g=g0+[...pY,...mO].reduce((t,p)=>t+wd(p),0);
   const fa=mk(st.fam.a,Pc-g/2,Y[1]),mo=mk(st.fam.b,Pc+g/2,Y[1]);
   kids(couple(fa,mo,st.fam.status,st.fam.year),fa.y+R+8,f2);
-  const side=(gp,ti,an,dir,x0)=>{if(!gp.on&&!ti.length)return;const n=ti.length,ts=[];let x=x0;
-   if(dir<0)for(let j=n-1;j>=0;j--){x-=wd(ti[j]);ts[j]=put(ti[j],x,Y[1])}else for(let j=0;j<n;j++){x+=j?wd(ti[j-1]):W;ts[j]=put(ti[j],x,Y[1])}
-   const grp=dir<0?[...ts,an]:[an,...ts],xx=grp.map(f=>f.x),m=(Math.min(...xx)+Math.max(...xx))/2;
+  const side=(gp,od,yg,an,xo,xy)=>{if(!gp.on&&!od.length&&!yg.length)return;const to=[],ty=[];let x=xo;
+   for(let j=od.length-1;j>=0;j--){x-=wd(od[j]);to[j]=put(od[j],x,Y[1])}
+   x=xy;for(let j=0;j<yg.length;j++){x+=j?wd(yg[j-1]):W;ty[j]=put(yg[j],x,Y[1])}
+   const grp=[...to,an,...ty],xx=grp.map(f=>f.x),m=(Math.min(...xx)+Math.max(...xx))/2;
    if(!gp.on){tb=1;kids(an.x,Y[1]-R-36,grp);return}
    const a=mk(gp.a,m-.9*W,Y[0]),b=mk(gp.b,m+.9*W,Y[0]);kids(couple(a,b,gp.status,gp.year),a.y+R+8,grp)};
   const un2=(h,par,dir)=>{let px=par.x;h.forEach(o=>{let x=o.cx==null?px+dir*1.1*W:2*o.cx-par.x;x=dir<0?Math.min(x,px-1.1*W):Math.max(x,px+1.1*W);px=x;const n=mk(o.q.p,x,Y[1]),c2=dir<0?couple(n,par,o.q.status,o.q.year):couple(par,n,o.q.status,o.q.year);if(o.k.length)kids(c2,n.y+R+8,o.k)});return px};
-  const xl=un2(hP.slice().reverse(),fa,-1),xr=un2(hM,mo,1);side(st.gpP,st.tp,fa,-1,xl);side(st.gpM,st.tm,mo,1,xr)}
+  const xl=un2(hP.slice().reverse(),fa,-1),xr=un2(hM,mo,1);side(st.gpP,pO,pY,fa,xl,fa.x);side(st.gpM,mO,mY,mo,mo.x,xr)}
  const minX=Math.min(...F.map(f=>f.x))-80,minY=Math.min(...F.map(f=>f.y))-R-50-(tb?40:0),maxX=Math.max(...F.map(f=>f.x))+80,maxY=Math.max(...F.map(f=>f.y))+R+105;
  const hg=F.filter(f=>f.p.hogar||f.p.id===st.pi.id);let hog='';
  if(hg.length>1)hog=hogar(F,hg);
